@@ -29,10 +29,10 @@ exports.register = async (req, res) => {
 
     sendTokenResponse(user, 201, res);
   } catch (err) {
+    console.error('Register error:', err);
     res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: err.message
+      message: err.message || 'Server error'
     });
   }
 };
@@ -69,10 +69,10 @@ exports.login = async (req, res) => {
 
     sendTokenResponse(user, 200, res);
   } catch (err) {
+    console.error('Login error:', err);
     res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: err.message
+      message: err.message || 'Server error'
     });
   }
 };

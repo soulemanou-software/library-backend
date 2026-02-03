@@ -5,24 +5,66 @@ const connectDB = require('./config/db');
 
 dotenv.config();
 
-connectDB();
-
 const app = express();
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174', 
+  'http://localhost:3000',
+  'https://library-frontend-eight-puce.vercel.app'
+];
+
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
-  credentials: true
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.options('*', cors());
+
 app.use(express.json());
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Database connection failed' });
+  }
+});
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/books', require('./routes/books'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Library API is running' });
+});
+
+app.get('/api/health', async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    res.json({ 
+      status: 'ok', 
+      db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+      env: {
+        mongodb: !!process.env.MONGODB_URI,
+        jwt: !!process.env.JWT_SECRET
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
 });
 
 app.use((err, req, res, next) => {
@@ -36,6 +78,10 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
