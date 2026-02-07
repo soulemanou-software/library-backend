@@ -45,6 +45,7 @@ app.get('/api/health', async (req, res) => {
     res.json({ 
       status: 'ok', 
       db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+      dbName: mongoose.connection.name || 'unknown',
       env: {
         mongodb: !!process.env.MONGODB_URI,
         jwt: !!process.env.JWT_SECRET
@@ -67,6 +68,12 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 if (process.env.NODE_ENV !== 'production') {
+  connectDB().then(() => {
+    console.log('MongoDB Connected');
+  }).catch(err => {
+    console.error('MongoDB connection error:', err.message);
+  });
+
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
