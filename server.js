@@ -39,44 +39,6 @@ app.get('/', (req, res) => {
   res.json({ message: 'Library API is running' });
 });
 
-app.post('/api/debug/test-login', async (req, res) => {
-  const steps = [];
-  try {
-    const { email, password } = req.body;
-    steps.push('1. Received request');
-    
-    const User = require('./models/User');
-    steps.push('2. User model loaded');
-    
-    const allUsers = await User.find({}).select('email name');
-    steps.push(`3. Total users in DB: ${allUsers.length}`);
-    steps.push(`4. Users: ${JSON.stringify(allUsers.map(u => u.email))}`);
-    
-    const user = await User.findOne({ email }).select('+password');
-    steps.push(`5. User found for ${email}: ${!!user}`);
-    
-    if (!user) {
-      return res.json({ steps, error: 'User not found' });
-    }
-    
-    steps.push(`6. Has password field: ${!!user.password}`);
-    
-    const bcrypt = require('bcryptjs');
-    const isMatch = await bcrypt.compare(password, user.password);
-    steps.push(`7. Password match: ${isMatch}`);
-    
-    const jwt = require('jsonwebtoken');
-    steps.push(`8. JWT_SECRET exists: ${!!process.env.JWT_SECRET}`);
-    
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    steps.push(`9. Token generated: ${!!token}`);
-    
-    res.json({ success: true, steps });
-  } catch (err) {
-    res.json({ success: false, steps, error: err.message, stack: err.stack });
-  }
-});
-
 app.get('/api/health', async (req, res) => {
   try {
     const mongoose = require('mongoose');
