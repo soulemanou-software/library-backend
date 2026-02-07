@@ -45,8 +45,9 @@ UserSchema.pre('save', async function(next) {
 });
 
 UserSchema.methods.getSignedJwtToken = function() {
+  const expiresIn = (process.env.JWT_EXPIRE || '7d').trim();
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '7d'
+    expiresIn
   });
 };
 
