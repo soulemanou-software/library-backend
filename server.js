@@ -39,6 +39,41 @@ app.get('/', (req, res) => {
   res.json({ message: 'Library API is running' });
 });
 
+app.post('/api/debug/test-login', async (req, res) => {
+  const steps = [];
+  try {
+    const { email, password } = req.body;
+    steps.push('1. Received request');
+    
+    const User = require('./models/User');
+    steps.push('2. User model loaded');
+    
+    const user = await User.findOne({ email }).select('+password');
+    steps.push(`3. User found: ${!!user}`);
+    
+    if (!user) {
+      return res.json({ steps, error: 'User not found' });
+    }
+    
+    steps.push(`4. Has password field: ${!!user.password}`);
+    
+    const bcrypt = require('bcryptjs');
+    const isMatch = await bcrypt.compare(password, user.password);
+    steps.push(`5. Password match: ${isMatch}`);
+    
+    const jwt = require('jsonwebtoken');
+    steps.push(`6. JWT_SECRET exists: ${!!process.env.JWT_SECRET}`);
+    steps.push(`7. JWT_SECRET length: ${(process.env.JWT_SECRET || '').length}`);
+    
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    steps.push(`8. Token generated: ${!!token}`);
+    
+    res.json({ success: true, steps });
+  } catch (err) {
+    res.json({ success: false, steps, error: err.message, stack: err.stack });
+  }
+});
+
 app.get('/api/health', async (req, res) => {
   try {
     const mongoose = require('mongoose');
@@ -61,7 +96,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ 
     success: false, 
     message: 'Server Error', 
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined 
+    error: err.message 
   });
 });
 
